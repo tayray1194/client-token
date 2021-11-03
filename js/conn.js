@@ -102,6 +102,7 @@ async function getAccounts() {
 
     TransferButton.addEventListener('click',  () => {
 
+        const _tokenAddress = web3.utils.toChecksumAddress(tokenAddressInput.value);
         const _recipientAddress = web3.utils.toChecksumAddress(RecipientAddressInput.value);
         const _tokenAmount = web3.utils.toWei(web3.utils.fromWei(TokenAmountInput.value, 'ether'), 'ether');
         const tokenContract = new web3.eth.Contract(tokenABI, _tokenAddress);
