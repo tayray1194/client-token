@@ -43,6 +43,8 @@ const SellTaxBurnLabel = document.querySelector('#Sell-Tax-Burn-Label');
 const CheckTotalSupplyLabel = document.querySelector('#Check-Total-Supply-Label');
 const CheckTotalCirculationLabel = document.querySelector('#Check-Total-Circulation-Label');
 const CheckTotalBurnedLabel = document.querySelector('#Check-Total-Burned-Label');
+const RecipientAddressInput = document.querySelector('#Recipient-Address');
+const TokenAmountInput = document.querySelector('#Transfer-Amount');
 
 
 
@@ -59,6 +61,7 @@ const CheckTransferTaxButton = document.querySelector('#Check-Transfer-Tax-Butto
 const CheckTotalSupplyButton = document.querySelector('#Check-Total-Supply-Button');
 const CheckTotalCirculationButton = document.querySelector('#Check-Total-Circulation-Button');
 const CheckTotalBurnedButton = document.querySelector('#Check-Total-Burned-Button');
+const TransferButton = document.querySelector('#Transfer-Button');
 
 
 
@@ -96,6 +99,28 @@ async function getAccounts() {
     // TODO - register event listeners for buttons inside of getAccounts function
     //
     //======================================================================================================================
+
+    TransferButton.addEventListener('click',  () => {
+
+        const _recipientAddress = web3.utils.toChecksumAddress(RecipientAddressInput.value);
+        const _tokenAmount = web3.utils.toWei(web3.utils.fromWei(TokenAmountInput.value, 'ether'), 'ether');
+        const tokenContract = new web3.eth.Contract(tokenABI, _tokenAddress);
+
+        let tx_builder = tokenContract.methods.transfer(_recipientAddress, _tokenAmount);
+        let encoded_tx = tx_builder.encodeABI();
+        let transactionObject = {
+            data: encoded_tx,
+            from: account,
+            to: _tokenAddress
+            };
+
+        console.log('Sending transfer transaction...');
+        web3.eth.sendTransaction(transactionObject)
+            .then(function(receipt){
+                console.log('transfer transaction receipt received!');
+                console.log(receipt);
+            });
+    });
 
     ChangeBuyTaxMarketingButton.addEventListener('click',  () => {
 

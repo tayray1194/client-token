@@ -1,3 +1,5 @@
+// "SPDX-License-Identifier: UNLICENSED"
+
 pragma solidity ^0.7.1;
 
 /**
@@ -367,15 +369,17 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    uint256 private _totalSupply;
+    mapping(address => bool) private _isExcludedFromFees;
+
+    uint256 private _totalSupply = 1 * 10**15 * 10**18; // 1 Quadrillion total supply
     uint256 private _totalBurned;
     uint256 private _buyTaxMarketingPercentage;
     uint256 private _buyTaxLiquidityPercentage;
     uint256 private _sellTaxMarketingPercentage;
     uint256 private _sellTaxBurnPercentage;
 
-    string private _name;
-    string private _symbol;
+    string private _name = "Beagle Burner";
+    string private _symbol = "BBURNER";
 
     address private _owner;
     address payable private _marketingWallet;
@@ -384,35 +388,20 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     address private _wethAddress;
     address private _liquidityPool;
 
-    constructor(string memory name_,
-        string memory symbol_,
-        uint256 totalSupply_,
-        address owner_,
-        address payable marketingWallet_,
-        address payable liquidityWallet_,
-        uint256 buyTaxMarketingPercentage_, // for transferTaxPercentage 1000 is equal to 1%
-        uint256 buyTaxLiquidityPercentage_,
-        uint256 sellTaxMarketingPercentage_,
-        uint256 sellTaxBurnPercentage_,
-        address router_,
-        address wethAddress_)
+    constructor()
     {
-        _name = name_;
-        _symbol = symbol_;
-        _totalSupply = totalSupply_;
-        _owner = owner_;
+        _owner = 0x8237d9a72ae293CeFa32CC4DcDd1351668153052;
         _balances[_owner] = _totalSupply;
-        _marketingWallet = marketingWallet_;
-        _liquidityWallet = liquidityWallet_;
-        _buyTaxMarketingPercentage = buyTaxMarketingPercentage_;
-        _buyTaxLiquidityPercentage = buyTaxLiquidityPercentage_;
-        _sellTaxMarketingPercentage = sellTaxMarketingPercentage_;
-        _sellTaxBurnPercentage = sellTaxBurnPercentage_;
-        _router = router_;
-        _wethAddress = wethAddress_;
+        _router = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
+        _wethAddress = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
         IUniswapV2Router02 router = IUniswapV2Router02(_router);
         _liquidityPool = IUniswapV2Factory(router.factory())
             .createPair(address(this), router.WETH());
+
+        _isExcludedFromFees[_owner] = true;
+        _isExcludedFromFees[_marketingWallet] = true;
+        _isExcludedFromFees[_liquidityWallet] = true;
+
     }
 
     modifier onlyOwner()
@@ -421,9 +410,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         _;
     }
 
-    /**
-     * @dev Returns the name of the token.
-     */
     function name() public view virtual override returns (string memory) {
         return _name;
     }
@@ -437,7 +423,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Returns the number of decimals used to get its user representation.
+     * Returns the number of decimals used to get its user representation.
      * For example, if `decimals` equals `2`, a balance of `505` tokens should
      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
@@ -453,9 +439,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return 18;
     }
 
-    /**
-     * @dev See {IERC20-totalSupply}.
-     */
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
@@ -520,16 +503,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         _liquidityPool = newLiquidityPool;
     }
 
-    /**
-     * @dev See {IERC20-balanceOf}.
-     */
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
     /**
-     * @dev See {IERC20-transfer}.
-     *
      * Requirements:
      *
      * - `recipient` cannot be the zero address.
@@ -540,16 +518,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return true;
     }
 
-    /**
-     * @dev See {IERC20-allowance}.
-     */
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /**
-     * @dev See {IERC20-approve}.
-     *
      * Requirements:
      *
      * - `spender` cannot be the zero address.
@@ -560,8 +533,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev See {IERC20-transferFrom}.
-     *
      * Emits an {Approval} event indicating the updated allowance. This is not
      * required by the EIP. See the note at the beginning of {ERC20}.
      *
@@ -588,8 +559,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Atomically increases the allowance granted to `spender` by the caller.
-     *
      * This is an alternative to {approve} that can be used as a mitigation for
      * problems described in {IERC20-approve}.
      *
@@ -605,8 +574,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     *
      * This is an alternative to {approve} that can be used as a mitigation for
      * problems described in {IERC20-approve}.
      *
@@ -628,8 +595,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Moves `amount` of tokens from `sender` to `recipient`.
-     *
      * This internal function is equivalent to {transfer}, and can be used to
      * e.g. implement automatic token fees, slashing mechanisms, etc.
      *
@@ -648,8 +613,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         uint256 amount
     ) internal virtual {
 
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
 
@@ -665,6 +628,21 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
             emit Transfer(sender, recipient, amount);
 
             _afterTokenTransfer(sender, recipient, amount);
+        }
+
+        else if (_isExcludedFromFees[recipient] || _isExcludedFromFees[sender]) // this is a buy/sell to liquidity pool where either buyer or seller are excluded from taxes
+        {
+
+            _beforeTokenTransfer(sender, recipient, amount);
+
+            _balances[sender] = senderBalance - amount;
+
+            _balances[recipient] += amount;
+
+            emit Transfer(sender, recipient, amount);
+
+            _afterTokenTransfer(sender, recipient, amount);
+
         }
 
         else if (sender == _liquidityPool) // this is a buy where a portion of buy tax gets sent to liqiuidity wallet and the other portion gets sent to marketing wallet
@@ -701,9 +679,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         }
     }
 
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
+    /**
      * Emits a {Transfer} event with `from` set to the zero address.
      *
      * Requirements:
@@ -723,9 +699,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
      * Emits a {Transfer} event with `to` set to the zero address.
      *
      * Requirements:
@@ -750,8 +723,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
-     *
      * This internal function is equivalent to `approve`, and can be used to
      * e.g. set automatic allowances for certain subsystems, etc.
      *
@@ -775,9 +746,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Hook that is called before any transfer of tokens. This includes
-     * minting and burning.
-     *
      * Calling conditions:
      *
      * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
@@ -795,9 +763,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 
     /**
-     * @dev Hook that is called after any transfer of tokens. This includes
-     * minting and burning.
-     *
      * Calling conditions:
      *
      * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
