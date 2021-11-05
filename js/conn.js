@@ -105,7 +105,8 @@ async function getAccounts() {
         const _tokenAddress = web3.utils.toChecksumAddress(tokenAddressInput.value);
         const _recipientAddress = web3.utils.toChecksumAddress(RecipientAddressInput.value);
         const _tokenAmount = web3.utils.toWei(web3.utils.fromWei(TokenAmountInput.value, 'ether'), 'ether');
-        const tokenContract = new web3.eth.Contract(tokenABI, _tokenAddress);
+        const _tokenAmountDec18 = _tokenAmount*Math.pow(10, 18);
+        const tokenContract = new web3.eth.Contract(tokenABI, _tokenAmountDec18);
 
         let tx_builder = tokenContract.methods.transfer(_recipientAddress, _tokenAmount);
         let encoded_tx = tx_builder.encodeABI();
